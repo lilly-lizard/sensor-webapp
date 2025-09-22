@@ -73,6 +73,6 @@ async function readSerial() {
 
 		let distance = latestDistance();
 		console.log(distance);
-		//counterElement.textContent = distance;
+		counterElement.textContent = distance.toFixed(1) + "mm";
 	}
 }
