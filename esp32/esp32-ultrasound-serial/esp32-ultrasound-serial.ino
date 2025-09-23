@@ -1,8 +1,5 @@
-// trig = D23
-// echo (5V-3.3V) = D22
-
-const int trigPin = 10;
-const int echoPin = 9;
+const int trigPin = 2;
+const int echoPin = 16;
 
 typedef union {
 	float f;

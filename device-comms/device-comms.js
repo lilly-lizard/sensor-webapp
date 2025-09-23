@@ -1,47 +1,45 @@
-// webserial api https://developer.chrome.com/docs/capabilities/serial
+// web-serial api https://developer.chrome.com/docs/capabilities/serial
+// web-bluetooth api https://developer.chrome.com/docs/capabilities/bluetooth
 
-let count = 0;
-const counterElement = document.getElementById("counter");
-const logElement = document.getElementById("log");
-const asciiDecoder = new TextDecoder("ascii");
+const counterElement = document.getElementById("counter-serial");
+const logElement = document.getElementById("log-serial");
 
 if ("serial" in navigator) {
 	console.log("serial supported");
 }
 
-document.getElementById('serial-button').addEventListener('click', async () => {
+document.getElementById('button-serial').addEventListener('click', async () => {
 	try {
 		// esp32 dev board vendorid:productid = 1a86:7523 QinHeng Electronics CH340 serial converter
 		await readSerial();
 	} catch (error) {
 		logElement.textContent = error;
+		console.error(error);
 	}
 });
 
-var lastDistance = 0.0;
-var latestBytes = new ArrayBuffer(16);
+var latestBytesSerial = new ArrayBuffer(16);
+var serialCount = 0;
 
-function latestDistance() {
+function latestDistanceSerial() {
 	// find last 4 consecutive 255s
-	var count = 0;
+	var serialCount = 0;
 	for (var i = 15; i >= 0; i--) {
-		if (latestBytes[i] == 255) {
-			count++;
+		if (latestBytesSerial[i] == 255) {
+			serialCount++;
 		} else {
-			count = 0;
+			serialCount = 0;
 		}
 
-		if (count >= 4) {
-			let floatBytes = latestBytes.slice(i - 4, i);
-
-			// swapsies
+		if (serialCount >= 4) {
+			let floatBytes = latestBytesSerial.slice(i - 4, i);
 
 			let view = new DataView(floatBytes.buffer);
 			let float = view.getFloat32(0);
 			return float;
 		}
 	}
-	return 0;
+	return -1;
 }
 
 async function readSerial() {
@@ -71,8 +69,27 @@ async function readSerial() {
 			}
 		}
 
-		let distance = latestDistance();
+		let distance = latestDistanceSerial();
 		console.log(distance);
-		counterElement.textContent = distance.toFixed(1) + "mm";
+		if (distance != -1) {
+			counterElement.textContent = distance.toFixed(1) + "mm";
+		}
 	}
+}
+document.getElementById('button-BLE').addEventListener('click', async () => {
+	readBluetooth();
+});
+
+function readBluetooth() {
+	navigator.bluetooth.requestDevice({
+		filters: [{
+			services: ["8bac7fbb-9890-4fef-8e2a-05c75fabe512"]
+		}]
+	})
+	.then(device => {
+		
+	})
+	.catch(error => {
+		console.error(error);
+	});
 }
