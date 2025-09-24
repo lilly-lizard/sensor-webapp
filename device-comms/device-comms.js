@@ -1,8 +1,15 @@
 // web-serial api https://developer.chrome.com/docs/capabilities/serial
 // web-bluetooth api https://developer.chrome.com/docs/capabilities/bluetooth
 
+const BLE_service_UUID = "8bac7fbb-9890-4fef-8e2a-05c75fabe512";
+const BLE_characteristic_UUID = "85af4282-a704-4944-814d-5dc715d6bd67";
+
 const counterElement = document.getElementById("counter-serial");
 const logElement = document.getElementById("log-serial");
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 if ("serial" in navigator) {
 	console.log("serial supported");
@@ -18,7 +25,7 @@ document.getElementById('button-serial').addEventListener('click', async () => {
 	}
 });
 
-var latestBytesSerial = new ArrayBuffer(16);
+var latestBytesSerial = new Uint8Array(16);
 var serialCount = 0;
 
 function latestDistanceSerial() {
@@ -57,15 +64,15 @@ async function readSerial() {
 
 		const serialLen = value.length;
 		if (serialLen >= 16) {
-			latestBytes = value.slice(-16);
+			latestBytesSerial = value.slice(-16);
 		} else {
 			// shift old bytes back
 			for (var i = serialLen; i < 16; i++) {
-				latestBytes[i - serialLen] = latestBytes[i];
+				latestBytesSerial[i - serialLen] = latestBytesSerial[i];
 			}
 			// append new bytes
 			for (var i = 0; i < serialLen; i++) {
-				latestBytes[16 - serialLen + i] = value[i];
+				latestBytesSerial[16 - serialLen + i] = value[i];
 			}
 		}
 
@@ -74,8 +81,11 @@ async function readSerial() {
 		if (distance != -1) {
 			counterElement.textContent = distance.toFixed(1) + "mm";
 		}
+
+		sleep(200);
 	}
 }
+
 document.getElementById('button-BLE').addEventListener('click', async () => {
 	readBluetooth();
 });
@@ -83,11 +93,25 @@ document.getElementById('button-BLE').addEventListener('click', async () => {
 function readBluetooth() {
 	navigator.bluetooth.requestDevice({
 		filters: [{
-			services: ["8bac7fbb-9890-4fef-8e2a-05c75fabe512"]
+			services: [BLE_service_UUID] // service UUID defined in ESP32 code
 		}]
 	})
 	.then(device => {
-		
+		console.log("bluetooth connected to: " + device.name);
+		return device.gatt.connect();
+	})
+	.then(server => server.getPrimaryService(BLE_service_UUID))
+	.then(service => {
+		console.log("service");
+		return service.getCharacteristic(BLE_characteristic_UUID);
+	})
+	.then(characteristic => {
+		console.log("value")
+		return characteristic.readValue();
+	})
+	.then(value => {
+		let distance = value.getFloat32();
+		console.log("bt distance: " + distance);
 	})
 	.catch(error => {
 		console.error(error);
